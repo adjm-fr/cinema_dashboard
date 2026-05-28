@@ -51,7 +51,7 @@ _CACHE_COLUMNS = ["tmdb_id", "flatrate", "tmdb_link", "fetched_at"]
 PROVIDER_DISPLAY_NAMES_PATH = Path(__file__).parent.parent / "assets" / "provider_display_names.json"
 
 
-def _load_display_names_catalog(path: Path | None = None) -> dict[str, str]:
+def load_display_names_catalog(path: Path | None = None) -> dict[str, str]:
     """Read the slug -> name catalogue from disk; `{}` when the file is absent.
 
     `path` defaults to the module-level `PROVIDER_DISPLAY_NAMES_PATH` resolved
@@ -83,7 +83,7 @@ def _update_display_names_catalog(
     if not new_pairs:
         return 0
     path = path or PROVIDER_DISPLAY_NAMES_PATH
-    catalogue = _load_display_names_catalog(path)
+    catalogue = load_display_names_catalog(path)
     added = {slug: name for slug, name in new_pairs.items() if slug and name and slug not in catalogue}
     if not added:
         return 0
@@ -101,12 +101,12 @@ def display_name(slug: str, catalogue: dict[str, str] | None = None) -> str:
     """Return a human-readable provider name for a slugified TMDB provider.
 
     `catalogue` is the in-memory snapshot of the JSON file
-    (`_load_display_names_catalog`). When omitted, the file is read on every
+    (`load_display_names_catalog`). When omitted, the file is read on every
     call — fine for one-off uses, but pass the dict for hot paths (page render
     loops) so we don't reopen the JSON for every slug. Unknown slugs fall back
     to a best-effort title-case with `"plus"` rewritten to `"+"`.
     """
-    cat = catalogue if catalogue is not None else _load_display_names_catalog()
+    cat = catalogue if catalogue is not None else load_display_names_catalog()
     if slug in cat:
         return cat[slug]
     return slug.replace("plus", "+").title()

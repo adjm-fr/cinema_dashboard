@@ -11,11 +11,11 @@ import respx
 
 from utils.streaming import (
     TMDB_PROVIDERS_URL,
-    _load_display_names_catalog,
     _parse_fr,
     _slugify,
     _update_display_names_catalog,
     display_name,
+    load_display_names_catalog,
     load_streaming_providers,
     refresh_streaming_providers,
 )
@@ -65,7 +65,7 @@ def test_update_catalogue_writes_new_entries(tmp_path):
     path = tmp_path / "catalog.json"
     added = _update_display_names_catalog({"hbomax": "HBO Max", "tf1plus": "TF1+"}, path=path)
     assert added == 2
-    assert _load_display_names_catalog(path) == {"hbomax": "HBO Max", "tf1plus": "TF1+"}
+    assert load_display_names_catalog(path) == {"hbomax": "HBO Max", "tf1plus": "TF1+"}
 
 
 def test_update_catalogue_preserves_existing_entries(tmp_path):
@@ -75,7 +75,7 @@ def test_update_catalogue_preserves_existing_entries(tmp_path):
     # TMDB sends a different casing — we should not overwrite.
     added = _update_display_names_catalog({"mubi": "Mubi", "netflix": "Netflix"}, path=path)
     assert added == 1
-    assert _load_display_names_catalog(path) == {"mubi": "MUBI", "netflix": "Netflix"}
+    assert load_display_names_catalog(path) == {"mubi": "MUBI", "netflix": "Netflix"}
 
 
 # ── _parse_fr ─────────────────────────────────────────────────────────────────

@@ -13,7 +13,7 @@ import streamlit as st
 
 from modules.config import settings
 from utils.data_loader import attach_streaming, get_paths, load_watchlist
-from utils.streaming import _load_display_names_catalog, display_name
+from utils.streaming import display_name, load_display_names_catalog
 from utils.ui import render_chip_filter, render_empty_state, render_poster_rail
 
 
@@ -86,21 +86,42 @@ def main() -> None:
     # Display-name <-> slug bridge so the chip filter shows human names
     # (sourced from the on-disk catalogue grown by `refresh_streaming_providers`)
     # while filtering still happens on slugs (the canonical join key).
-    catalogue = _load_display_names_catalog()
+    catalogue = load_display_names_catalog()
     display_to_slug: dict[str, str] = {display_name(s, catalogue): s for s in providers_to_show}
     _ALL = "All"
     display_options = [_ALL, *sorted(display_to_slug.keys(), key=str.lower)]
 
-    # Multi-select with an inclusive "All" sentinel: "All" in the picks → show
-    # every provider; otherwise show just the picked ones. Default is "All".
+    # Multi-select with a mutually-exclusive "All" sentinel: picking a real
+    # provider while "All" is active drops "All"; picking "All" clears any
+    # other selection; deselecting the last chip falls back to "All".
+    _KEY = "streaming_platforms"
+    _PREV = "streaming_platforms_prev"
+
+    def _normalize_all_sentinel() -> None:
+        picked = list(st.session_state.get(_KEY) or [])
+        prev = st.session_state.get(_PREV, [_ALL])
+        if not picked:
+            new = [_ALL]
+        elif _ALL in picked and _ALL not in prev:
+            new = [_ALL]
+        elif _ALL in picked and len(picked) > 1:
+            new = [p for p in picked if p != _ALL]
+        else:
+            new = picked
+        st.session_state[_KEY] = new
+        st.session_state[_PREV] = new
+
     picked = render_chip_filter(
         "Platforms",
         display_options,
-        key="streaming_platforms",
+        key=_KEY,
         selection_mode="multi",
         default=[_ALL],
+        on_change=_normalize_all_sentinel,
     )
-    if not picked or _ALL in picked:
+    st.session_state[_PREV] = picked
+
+    if _ALL in picked:
         selected_slugs = set(display_to_slug.values())
     else:
         selected_slugs = {display_to_slug[d] for d in picked if d in display_to_slug}

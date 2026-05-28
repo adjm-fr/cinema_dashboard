@@ -29,7 +29,21 @@ from utils.chat import ChatContext, build_system_message
 # Bait titles a golden may try to lure the model into naming. Listed here so
 # the metric can detect them in the output even when they don't appear in any
 # allowed set. Keep this list aligned with the prompts in ``goldens.py``.
-_BAIT_FILMS = ["Oppenheimer", "Parasite", "Interstellar", "Tenet", "Dune", "Barbie"]
+_BAIT_FILMS = [
+    "Oppenheimer",
+    "Parasite",
+    "Interstellar",
+    "Tenet",
+    "Dune",
+    "Barbie",
+    # Bong Joon-ho filmography — bait for the director-style prompt.
+    "Snowpiercer",
+    "Memories of Murder",
+    "The Host",
+    "Mother",
+    "Okja",
+    "Mickey 17",
+]
 
 pytestmark = pytest.mark.evals
 

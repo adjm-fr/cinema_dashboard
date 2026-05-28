@@ -134,6 +134,7 @@ cinema_dashboard/
 │   └── evals/                    # LLM hallucination evals (opt-in via `-m evals`)
 │       ├── goldens.py            # Bait prompts + allowed film/provider sets
 │       ├── metrics.py            # FilmSetMembership + StreamingClaim DeepEval metrics
+│       ├── test_metrics.py       # Unit tests for the metric regex (no HF calls)
 │       └── test_chat_evals.py    # Parameterized harness (hits live HF API)
 └── .env                          # Local environment variables (not committed)
 ```
@@ -259,10 +260,12 @@ Streamlit cache TTL is **5 minutes**, shared across all pages (`DATA_TTL_SECONDS
 
 ## LLM evals
 
-The Recommendations chat is rule-bound to only reference watchlist titles and FR streaming providers from the lists injected into its system prompt. To verify that the live model actually respects those rules, `tests/evals/` ships a small DeepEval-based regression suite of bait prompts (e.g. *"Recommend me Oppenheimer for tonight."*, *"Is Parasite on Disney+?"*). Two deterministic metrics flag violations:
+The Recommendations chat is rule-bound to only reference watchlist titles and FR streaming providers from the lists injected into its system prompt. To verify that the live model actually respects those rules, `tests/evals/` ships a small DeepEval-based regression suite of bait prompts (e.g. *"Recommend me Oppenheimer for tonight."*, *"Is Parasite on Disney+?"*, *"Surprise me with a Bong Joon-ho-style movie"*). Two deterministic metrics flag violations:
 
 - **`FilmSetMembershipMetric`** — fails if the output names a film outside the allowed set.
 - **`StreamingClaimMetric`** — fails if the output ties a film to a provider not in the allowed `(film, provider)` set.
+
+Both metrics ignore mentions inside a **refusal context** (*"I can't recommend Oppenheimer"*, *"Past Lives isn't on Netflix"*) so a principled denial doesn't count as a hallucination. The refusal logic is regex-based and unit-tested separately in `tests/evals/test_metrics.py`, which runs in the default `pytest` suite and does **not** hit the HF API.
 
 The suite is deselected from the default `pytest` run (every file is tagged `pytest.mark.evals` and `pyproject.toml` uses `addopts = "-m 'not evals'"`) because each case hits the live Hugging Face Inference API.
 

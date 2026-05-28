@@ -44,7 +44,7 @@ Three calmer tabs in place of the old chart wall:
 
 **Requires**: `MOVIES_OUTPUT_PATH`
 
-### Watchlist Calendar (📅)
+### Watchlist Showtimes (📅)
 
 Inner-joins your watchlist with current showtimes. Top chip-filter bar (theaters, genres, runtime buckets, weekend toggle, free-text search) + sidebar date range over three tabs:
 - **By day** — horizontal poster rails grouped by date; one card per movie with all showtimes for that day listed below (time + theater), sorted by earliest showtime. When `STREAMING_SERVICES` is set, the rails split into **"Cinema-only this week"** (worth leaving the house for) followed by **"Also streaming on your services"** (you can stay in). The map and any aggregate counts still use the full set so pins aren't dropped.
@@ -52,6 +52,14 @@ Inner-joins your watchlist with current showtimes. Top chip-filter bar (theaters
 - **Map** — pydeck map of theaters with screenings in the current filter; marker size ∝ # screenings
 
 **Requires**: `MOVIES_OUTPUT_PATH` + `ALLOCINE_OUTPUT_PATH` (+ `ALLOCINE_INPUT_PATH` for the map)
+
+### Streaming (📺)
+
+One horizontal poster rail per FR streaming provider, populated from the TMDB watch-providers cache. Films are taken from your full watchlist (not only those with upcoming showtimes), sorted by Letterboxd average rating per rail. A chip filter at the top lets you toggle rails on/off using human-readable provider names (e.g. *Canal+*, *MUBI*).
+
+When `STREAMING_SERVICES` is set, only rails for your subscribed providers appear. When unset, every provider returned by TMDB for your watchlist gets a rail. The page is explicitly FR-scoped — availability comes from TMDB's France region.
+
+**Requires**: `MOVIES_OUTPUT_PATH` (+ `TMDB_API_KEY` set when running `orchestrate.py` so the cache is populated)
 
 ### Recommendations (🤖)
 
@@ -119,7 +127,8 @@ cinema_dashboard/
 │   ├── 0_home.py                 # Home — hero "tonight" card, poster rails, KPI strip
 │   ├── showtimes.py              # Showtimes page (chip filters, day rails, map, table)
 │   ├── database.py               # Movies Database page (Overview / Discover / Tables)
-│   ├── calendar.py               # Watchlist Calendar page (Calendar / Map / List, ICS export)
+│   ├── calendar.py               # Watchlist Showtimes page (Calendar / Map / List, ICS export)
+│   ├── streaming.py              # Streaming page — one poster rail per FR provider
 │   └── recommendations.py        # Recommendations chat page (calls utils/chat.render_chat)
 ├── utils/
 │   ├── data_loader.py            # Cached parquet readers + watchlist↔showtimes join

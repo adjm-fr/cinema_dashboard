@@ -23,6 +23,8 @@ from uuid import uuid4
 import pandas as pd
 import streamlit as st
 
+from utils.streaming import _load_display_names_catalog, display_name
+
 log = logging.getLogger(__name__)
 
 _STYLES_PATH = Path(__file__).parent.parent / "assets" / "styles.css"
@@ -130,9 +132,10 @@ def _streaming_badges_html(
     subscribed_flat = [p for p in flat if p in sub]
     if not subscribed_flat:
         return ""
+    catalogue = _load_display_names_catalog()
     chips: list[str] = []
     for slug in subscribed_flat:
-        chips.append(f'<span class="chip chip--streaming">{html.escape(slug)}</span>')
+        chips.append(f'<span class="chip chip--streaming">{html.escape(display_name(slug, catalogue))}</span>')
     return f'<div class="streaming-row">{"".join(chips)}</div>'
 
 

@@ -55,7 +55,7 @@ Inner-joins your watchlist with current showtimes. Top chip-filter bar (theaters
 
 ### Streaming (📺)
 
-One horizontal poster rail per FR streaming provider, populated from the TMDB watch-providers cache. Films are taken from your full watchlist (not only those with upcoming showtimes), sorted by Letterboxd average rating per rail. A chip filter at the top lets you toggle rails on/off using human-readable provider names (e.g. *Canal+*, *MUBI*).
+One horizontal poster rail per FR streaming provider, populated from the TMDB watch-providers cache. Films are taken from your full watchlist (not only those with upcoming showtimes), sorted by Letterboxd average rating per rail. A multi-select chip filter at the top (with an inclusive *All* sentinel) lets you focus on one or more providers using human-readable provider names (e.g. *Canal+*, *MUBI*). The slug → pretty-name map is persisted at `assets/provider_display_names.json` and auto-grows every time `orchestrate.py` refreshes the cache and TMDB returns a new provider.
 
 When `STREAMING_SERVICES` is set, only rails for your subscribed providers appear. When unset, every provider returned by TMDB for your watchlist gets a rail. The page is explicitly FR-scoped — availability comes from TMDB's France region.
 
@@ -93,15 +93,18 @@ movies_management          Allocine-Showtimes-Scraping
         │  ratings_with_letterboxd    │  showtimes.parquet
         │  data_letterboxd            │
         └─────────────┬───────────────┘
+                      │      + TMDB watch-providers FR (in-process refresh)
+                      │        → data/streaming_providers.parquet
                       │
               cinema_dashboard
-       ┌───────┬──────┼─────────┬─────────────┐
-  Showtimes  Database  Calendar  Recommendations
-                                      │
-                              Hugging Face API
-                          (moonshotai/Kimi-K2-Instruct)
-                                      │
+   ┌──────┬──────────┬──────┴──────────────┬───────────┬─────────────────┐
+  Home  Database  Watchlist Showtimes  Streaming  Recommendations
+                                                         │
+                                                  Gemini API
+                                             (google-genai SDK)
+                                                         │
                                utils/data_loader.py       ← cached parquet readers
+                               utils/streaming.py         ← TMDB FR providers cache
                                utils/allocine_search.py   ← theater lookup
                                utils/theater_manager.py   ← CSV append
 ```
@@ -115,7 +118,8 @@ cinema_dashboard/
 ├── .streamlit/
 │   └── config.toml               # Cinema theme: dark + light, system-driven
 ├── assets/
-│   └── styles.css                # Design tokens, movie cards, poster rails, chips, KPI cards, motion, focus rings, mobile media queries
+│   ├── styles.css                # Design tokens, movie cards, poster rails, chips, KPI cards, motion, focus rings, mobile media queries
+│   └── provider_display_names.json  # Slug → pretty-name catalogue (auto-grown by refresh_streaming_providers)
 ├── modules/
 │   ├── config.py                 # Centralised settings via pydantic-settings (BaseSettings)
 │   └── scrapers.py               # Shared scraper command builders + staleness rules (single source of truth)
@@ -125,21 +129,22 @@ cinema_dashboard/
 │   └── definitions.py            # Dagster Definitions entry point
 ├── pages/
 │   ├── 0_home.py                 # Home — hero "tonight" card, poster rails, KPI strip
-│   ├── showtimes.py              # Showtimes page (chip filters, day rails, map, table)
 │   ├── database.py               # Movies Database page (Overview / Discover / Tables)
-│   ├── calendar.py               # Watchlist Showtimes page (Calendar / Map / List, ICS export)
+│   ├── calendar.py               # Watchlist Showtimes page (chip filters, day rails, map, ICS export)
 │   ├── streaming.py              # Streaming page — one poster rail per FR provider
 │   └── recommendations.py        # Recommendations chat page (calls utils/chat.render_chat)
 ├── utils/
-│   ├── data_loader.py            # Cached parquet readers + watchlist↔showtimes join
+│   ├── data_loader.py            # Cached parquet readers + watchlist↔showtimes join + attach_streaming
+│   ├── streaming.py              # TMDB FR watch-providers cache + display-name catalogue loader/updater
 │   ├── ui.py                     # Shared rendering helpers (movie cards, rails, hero card, KPIs, chips, ICS, runtime/rating formatting)
 │   ├── geo.py                    # Theater geocoding (Nominatim + RateLimiter, cached parquet) + pydeck map renderer
-│   ├── chat.py                   # Reusable HF chat assistant (build_chat_context + render_chat) shared by the page and Cmd+K dialog
+│   ├── chat.py                   # Reusable Gemini chat assistant (build_chat_context + render_chat) shared by the page and Cmd+K dialog
 │   ├── cmdk.py                   # Global Cmd+K command palette (st.dialog + streamlit-shortcuts)
 │   ├── allocine_search.py        # Searches Paris theaters via the Allocine API
 │   └── theater_manager.py        # Reads/appends to the theaters CSV
 ├── tests/
 │   ├── conftest.py               # Shared fixtures + @st.cache_data no-op patch
+│   ├── test_*.py                 # Unit tests for data_loader, ui, chat, streaming, geo, scrapers, config, calendar, allocine_search
 │   └── evals/                    # LLM hallucination evals (opt-in via `-m evals`)
 │       ├── goldens.py            # Bait prompts + allowed film/provider sets
 │       ├── metrics.py            # FilmSetMembership + StreamingClaim DeepEval metrics
